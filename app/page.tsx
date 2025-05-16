@@ -2,17 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-import "./../app/app.css";
+import type { Schema } from "@/amplify/data/resource"; 
+import "./../app/app.css"; 
 import { Amplify } from "aws-amplify";
 import outputs from "@/amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
+import { Authenticator, useAuthenticator, Button, Heading } from '@aws-amplify/ui-react';
 
-Amplify.configure(outputs);
+Amplify.configure(outputs); 
 
-const client = generateClient<Schema>();
+const client = generateClient<Schema>(); 
 
-export default function App() {
+const AppContent = () => {
+  const { user, signOut } = useAuthenticator((context) => [context.user]);
+
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
 
   function listTodos() {
@@ -31,22 +34,40 @@ export default function App() {
     });
   }
 
+  async function deleteTodo(id: string) {
+    await client.models.Todo.delete({ id });
+  }
+
   return (
     <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
+      <Heading level={1}>My todos</Heading>
+      {user && <Heading level={3}>Welcome, {user.signInDetails?.loginId || user.username}!</Heading>}
+      
+      <Button variation="primary" onClick={createTodo}>+ new</Button>
+
       <ul>
         {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
+          <li key={todo.id} onClick={() => deleteTodo(todo.id)}>
+            {todo.content}
+          </li>
         ))}
       </ul>
       <div>
-        🥳 App successfully hosted. Try creating a new todo.
+        App successfully hosted. Try creating a new todo.
         <br />
         <a href="https://docs.amplify.aws/nextjs/start/quickstart/nextjs-app-router-client-components/">
           Review next steps of this tutorial.
         </a>
       </div>
+      <Button variation="link" onClick={signOut}>Sign Out</Button>
     </main>
+  );
+};
+
+export default function App() {
+  return (
+    <Authenticator loginMechanisms={['email']} socialProviders={['google', 'facebook']}>
+      <AppContent />
+    </Authenticator>
   );
 }
